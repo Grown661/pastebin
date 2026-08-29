@@ -164,7 +164,7 @@ function handleView(res, id) {
   </div>
   <pre id="code" data-lang="${escapeHtml(p.language)}">${escapeHtml(p.content)}</pre>
 </div>
-<script src="/highlight.js"></script>
+<script src="/mini-highlight.js"></script>
 </body>
 </html>`;
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -208,7 +208,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'POST' && pathname === '/api/paste') return await handleCreate(req, res);
     if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) return await serveStatic(res, 'index.html');
-    if (req.method === 'GET' && pathname === '/highlight.js') return await serveStatic(res, 'highlight.js');
+    if (req.method === 'GET' && pathname === '/mini-highlight.js') return await serveStatic(res, 'mini-highlight.js');
     if (req.method === 'GET' && pathname.startsWith('/raw/')) return handleRaw(res, pathname.slice(5));
     if (req.method === 'GET' && /^\/[a-f0-9]{10}$/.test(pathname)) return handleView(res, pathname.slice(1));
     res.writeHead(404, { 'Content-Type': 'text/plain' });
