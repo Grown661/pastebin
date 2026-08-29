@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pastebin</title>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #1a2233; --border: #2a3550;
+    --text: #e8ecf4; --muted: #8b96ad; --accent: #4f8cff; --ok: #3ecf8e;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 2rem 1rem;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin-bottom: .25rem; }
+  .sub { color: var(--muted); margin-bottom: 1.5rem; }
+  textarea {
+    width: 100%; min-height: 320px; padding: .9rem; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--panel); color: var(--text);
+    font-family: ui-monospace, Consolas, monospace; font-size: .9rem; line-height: 1.5;
+    resize: vertical;
+  }
+  textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .controls { display: flex; gap: .75rem; margin-top: .75rem; align-items: center; flex-wrap: wrap; }
+  select {
+    padding: .55rem .7rem; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: .9rem;
+  }
+  label { color: var(--muted); font-size: .85rem; }
+  button {
+    padding: .6rem 1.4rem; border-radius: 8px; border: none;
+    background: var(--accent); color: #fff; font-size: 1rem; cursor: pointer;
+    margin-left: auto;
+  }
+  button:hover { filter: brightness(1.1); }
+  .result {
+    display: none; background: var(--panel); border: 1px solid var(--ok);
+    border-radius: 8px; padding: .9rem 1rem; margin-top: 1rem; word-break: break-all;
+  }
+  .result a { color: var(--ok); font-weight: 600; text-decoration: none; margin-right: 1rem; }
+  .result a.raw { color: var(--muted); font-weight: 400; }
+  .error { display: none; color: #ff6b6b; margin-top: .75rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pastebin</h1>
+  <p class="sub">Code-Snippet einfuegen, Link teilen. Optional mit Ablaufdatum.</p>
+
+  <textarea id="content" placeholder="// Snippet hier einfuegen…" spellcheck="false"></textarea>
+
+  <div class="controls">
+    <label>Sprache
+      <select id="language">
+        <option value="generic">Text / Sonstiges</option>
+        <option value="js">JavaScript</option>
+        <option value="py">Python</option>
+      </select>
+    </label>
+    <label>Ablauf
+      <select id="expiresIn">
+        <option value="never">Nie</option>
+        <option value="1h">1 Stunde</option>
+        <option value="1d">1 Tag</option>
+        <option value="1w">1 Woche</option>
+      </select>
+    </label>
+    <button id="submit">Paste erstellen</button>
+  </div>
+
+  <p class="error" id="error"></p>
+  <div class="result" id="result">
+    <a id="link" href="#" target="_blank" rel="noopener"></a>
+    <a id="rawLink" class="raw" href="#" target="_blank" rel="noopener">Raw</a>
+  </div>
+</div>
+
+<script>
+const btn = document.getElementById('submit');
+const errorEl = document.getElementById('error');
+const result = document.getElementById('result');
+
+btn.addEventListener('click', async () => {
+  errorEl.style.display = 'none';
+  result.style.display = 'none';
+  try {
+    const res = await fetch('/api/paste', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: document.getElementById('content').value,
+        language: document.getElementById('language').value,
+        expiresIn: document.getElementById('expiresIn').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Fehler');
+    const link = document.getElementById('link');
+    link.textContent = data.url;
+    link.href = data.url;
+    document.getElementById('rawLink').href = data.rawUrl;
+    result.style.display = 'block';
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>
