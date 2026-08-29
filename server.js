@@ -35,17 +35,30 @@ async function loadStore() {
   }
 }
 
+let savePending = false;
+
 function scheduleSave() {
-  if (saveTimer) return;
-  saveTimer = setTimeout(async () => {
+  if (saveTimer) { savePending = true; return; } // Save laeuft/steht an -> danach erneut
+  saveTimer = setTimeout(doSave, 100);
+}
+
+async function doSave() {
+  savePending = false;
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    // Atomar: erst in tmp-Datei schreiben, dann rename — nie eine halb
+    // geschriebene pastes.json, auch wenn der Prozess mitten im Write stirbt.
+    const tmp = DATA_FILE + '.tmp';
+    await fs.writeFile(tmp, JSON.stringify(store, null, 2));
+    await fs.rename(tmp, DATA_FILE);
+  } catch (err) {
+    console.error('save failed:', err.message);
+    savePending = true; // Retry beim naechsten Durchgang
+  } finally {
+    // saveTimer erst NACH dem Write freigeben -> kein paralleler zweiter Write
     saveTimer = null;
-    try {
-      await fs.mkdir(DATA_DIR, { recursive: true });
-      await fs.writeFile(DATA_FILE, JSON.stringify(store, null, 2));
-    } catch (err) {
-      console.error('save failed:', err.message);
-    }
-  }, 100);
+    if (savePending) scheduleSave();
+  }
 }
 
 /** Liefert Paste oder null; loescht abgelaufene beim Zugriff. */
