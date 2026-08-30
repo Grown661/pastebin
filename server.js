@@ -63,6 +63,8 @@ async function doSave() {
 
 /** Liefert Paste oder null; loescht abgelaufene beim Zugriff. */
 function getPaste(id) {
+  // Nur echte eigene Keys — sonst liefert store.pastes['constructor'] die Prototype-Funktion
+  if (!Object.hasOwn(store.pastes, id)) return null;
   const p = store.pastes[id];
   if (!p) return null;
   if (p.expiresAt && Date.now() > p.expiresAt) {
@@ -116,6 +118,10 @@ async function handleCreate(req, res) {
     body = JSON.parse(await readBody(req));
   } catch (err) {
     return sendJson(res, err.message === 'payload too large' ? 413 : 400, { error: err.message || 'invalid JSON' });
+  }
+  // JSON.parse('null') liefert null ohne Fehler -> ohne Check gaebe es 500 statt 400
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return sendJson(res, 400, { error: 'invalid body' });
   }
   const content = typeof body.content === 'string' ? body.content : '';
   if (!content.trim()) return sendJson(res, 400, { error: 'content required' });
